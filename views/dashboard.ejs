@@ -1,0 +1,108 @@
+<%- include('partials/header', { title: 'Dashboard', heading: 'Главная сводка центра' }) %>
+
+<section class="stats-grid four">
+  <article class="stat-card accent-a">
+    <p>Всего учеников</p>
+    <strong><%= stats.studentsCount %></strong>
+  </article>
+  <article class="stat-card accent-b">
+    <p>Активные преподаватели</p>
+    <strong><%= stats.activeTeachersCount %></strong>
+  </article>
+  <article class="stat-card accent-c">
+    <p>Активные группы</p>
+    <strong><%= stats.activeGroupsCount %></strong>
+  </article>
+  <article class="stat-card accent-b">
+    <p>Активные тарифы</p>
+    <strong><%= stats.activeTariffsCount %></strong>
+  </article>
+</section>
+
+<section class="panel-grid">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Ученики без группы</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ученик</th>
+            <th>Язык</th>
+            <th>Уровень</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (studentsWithoutGroup.length === 0) { %>
+            <tr>
+              <td colspan="3" class="empty-state">Все ученики распределены по группам</td>
+            </tr>
+          <% } %>
+          <% studentsWithoutGroup.forEach((student) => { %>
+            <tr>
+              <td><a href="/students?studentId=<%= student.id %>"><%= student.full_name %></a></td>
+              <td><%= languageLabels[student.language] %></td>
+              <td><%= student.level %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="panel-head compact">
+      <h3>Нужно продление тарифа</h3>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ученик</th>
+            <th>Период до</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (expiredSubscriptions.length === 0) { %>
+            <tr>
+              <td colspan="2" class="empty-state">Нет просроченных периодов</td>
+            </tr>
+          <% } %>
+          <% expiredSubscriptions.forEach((item) => { %>
+            <tr>
+              <td><a href="/students?studentId=<%= item.id %>"><%= item.full_name %></a></td>
+              <td><%= item.latest_period_end || 'нет оплат' %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </article>
+
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Последние оплаты</h3>
+      <a href="/payments">Журнал оплат</a>
+    </div>
+    <div class="activity-list">
+      <% if (recentPayments.length === 0) { %>
+        <p class="empty-state">Оплат пока нет.</p>
+      <% } %>
+      <% recentPayments.forEach((payment) => { %>
+        <div class="activity-item">
+          <div>
+            <strong><%= payment.student_name %></strong>
+            <p><%= payment.payment_date %> · <%= payment.tariff_name %></p>
+          </div>
+          <div class="activity-meta">
+            <span><%= payment.amount.toFixed(2) %></span>
+            <small><%= payment.period_start %> - <%= payment.period_end %></small>
+          </div>
+        </div>
+      <% }) %>
+    </div>
+  </article>
+</section>
+
+<%- include('partials/footer') %>

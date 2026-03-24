@@ -1,0 +1,22 @@
+{
+  "name": "phoenix-language-center",
+  "version": "1.0.0",
+  "description": "Local management system for a language training center",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "node --watch src/app.js"
+  },
+  "keywords": [
+    "local",
+    "express",
+    "sqlite",
+    "school",
+    "attendance"
+  ],
+  "license": "UNLICENSED",
+  "dependencies": {
+    "ejs": "^3.1.10",
+    "express": "^4.21.2"
+  }
+}

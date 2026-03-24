@@ -1,0 +1,114 @@
+<%- include('partials/header', { title: 'Оплаты', heading: 'Оплата занятий по тарифам' }) %>
+
+<section class="panel-grid">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Журнал оплат</h3>
+      <div class="row-actions">
+        <button class="mini-button" type="button" data-open-modal="payment-modal">Добавить оплату</button>
+        <form method="get" action="/payments" class="inline-filter">
+          <select name="studentId">
+            <option value="">Все ученики</option>
+            <% students.forEach((student) => { %>
+              <option value="<%= student.id %>" <%= selectedStudentId === student.id ? 'selected' : '' %>><%= student.full_name %></option>
+            <% }) %>
+          </select>
+          <button class="mini-button" type="submit">Фильтр</button>
+        </form>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Ученик</th>
+            <th>Тариф</th>
+            <th>Сумма</th>
+            <th>Способ</th>
+            <th>Период</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (payments.length === 0) { %>
+            <tr>
+              <td colspan="6" class="empty-state">Оплат пока нет</td>
+            </tr>
+          <% } %>
+          <% payments.forEach((payment) => { %>
+            <tr>
+              <td><%= payment.payment_date %></td>
+              <td><a href="/students?studentId=<%= payment.student_id %>"><%= payment.student_name %></a></td>
+              <td><%= payment.tariff_name %></td>
+              <td><%= payment.amount.toFixed(2) %></td>
+              <td><%= paymentMethodLabels[payment.payment_method] %></td>
+              <td><%= payment.period_start %> - <%= payment.period_end %></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<div class="modal" id="payment-modal" data-modal>
+  <div class="modal-card">
+    <div class="panel-head">
+      <h3>Добавить оплату</h3>
+      <button class="link-button" type="button" data-close-modal>Закрыть</button>
+    </div>
+
+    <form method="post" action="/payments/create" class="stack-form modal-form-grid">
+      <label class="span-2">
+        <span>Ученик</span>
+        <select name="studentId" required>
+          <option value="">Выберите ученика</option>
+          <% students.forEach((student) => { %>
+            <option value="<%= student.id %>" <%= String(paymentDraft.studentId || selectedStudentId || '') === String(student.id) ? 'selected' : '' %>>
+              <%= student.full_name %> · <%= languageLabels[student.language] %> · <%= student.level %>
+            </option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label class="span-2">
+        <span>Тариф</span>
+        <select name="tariffId">
+          <option value="">Не выбран</option>
+          <% tariffs.forEach((tariff) => { %>
+            <option value="<%= tariff.id %>" <%= String(paymentDraft.tariffId || '') === String(tariff.id) ? 'selected' : '' %>>
+              <%= tariff.name %> · <%= languageLabels[tariff.language] %> · <%= tariff.duration_days %> дн.
+            </option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label>
+        <span>Сумма</span>
+        <input type="number" name="amount" min="0" step="0.01" value="<%= paymentDraft.amount || '' %>" required />
+      </label>
+
+      <label>
+        <span>Дата оплаты</span>
+        <input type="date" name="paymentDate" value="<%= paymentDraft.paymentDate || todayIso %>" required />
+      </label>
+
+      <label>
+        <span>Способ оплаты</span>
+        <select name="paymentMethod" required>
+          <option value="cash" <%= (paymentDraft.paymentMethod || 'cash') === 'cash' ? 'selected' : '' %>>Наличные</option>
+          <option value="transfer" <%= paymentDraft.paymentMethod === 'transfer' ? 'selected' : '' %>>Перевод</option>
+        </select>
+      </label>
+
+      <label class="span-2">
+        <span>Комментарий</span>
+        <textarea name="notes" rows="3"><%= paymentDraft.notes || '' %></textarea>
+      </label>
+
+      <button class="primary-button span-2" type="submit">Сохранить оплату</button>
+    </form>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

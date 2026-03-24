@@ -1,0 +1,32 @@
+# Node modules
+node_modules/
+
+# Env файлы (секреты)
+.env
+
+# Логи
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS мусор
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# База данных (если локальная)
+*.sqlite
+*.db
+
+# Временные файлы
+tmp/
+temp/
+
+# Build папки (если будут)
+dist/
+build/

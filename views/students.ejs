@@ -1,0 +1,264 @@
+<%- include('partials/header', { title: 'Ученики', heading: 'Карточки учеников' }) %>
+
+<section class="panel-grid">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Список учеников</h3>
+      <div class="row-actions">
+        <button class="mini-button" type="button" data-open-modal="student-modal">Добавить ученика</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Ученик</th>
+            <th>Язык</th>
+            <th>Уровень</th>
+            <th>Тариф</th>
+            <th>Группа</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (students.length === 0) { %>
+            <tr>
+              <td colspan="6" class="empty-state">Учеников пока нет</td>
+            </tr>
+          <% } %>
+          <% students.forEach((student) => { %>
+            <tr>
+              <td>
+                <strong><%= student.full_name %></strong>
+                <p class="row-subtext"><%= student.phone %> · <%= studentStatusLabels[student.status] %></p>
+              </td>
+              <td><%= languageLabels[student.language] %></td>
+              <td><%= student.level %></td>
+              <td>
+                <%= student.tariff_name %>
+                <p class="row-subtext">
+                  <% if (student.tariff_days_left === null) { %>
+                    Оплат пока нет
+                  <% } else if (student.tariff_days_left > 0) { %>
+                    Осталось: <%= student.tariff_days_left %> дн.
+                  <% } else { %>
+                    Тариф истек
+                  <% } %>
+                </p>
+              </td>
+              <td>
+                <%= student.group_name || 'Без группы' %>
+                <% if (student.teacher_name) { %>
+                  <p class="row-subtext"><%= student.teacher_name %></p>
+                <% } %>
+              </td>
+              <td>
+                <div class="row-actions">
+                  <button
+                    class="mini-button"
+                    type="button"
+                    data-edit-student
+                    data-id="<%= student.id %>"
+                    data-full-name="<%= student.full_name %>"
+                    data-phone="<%= student.phone %>"
+                    data-language="<%= student.language %>"
+                    data-level="<%= student.level %>"
+                    data-start-date="<%= student.start_date %>"
+                    data-tariff-id="<%= student.tariff_id %>"
+                    data-group-id="<%= student.group_id || '' %>"
+                    data-status="<%= student.status %>"
+                    data-notes="<%= student.notes || '' %>"
+                  >
+                    Редактировать
+                  </button>
+                  <a class="mini-link" href="/students?studentId=<%= student.id %>">Карточка</a>
+                  <a class="mini-link" href="/payments?studentId=<%= student.id %>">Оплата</a>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <% if (selectedStudent) { %>
+      <div class="divider"></div>
+      <div class="panel-head compact">
+        <h3>Карточка: <%= selectedStudent.full_name %></h3>
+      </div>
+      <dl class="group-meta">
+        <div>
+          <dt>Тариф</dt>
+          <dd><%= selectedStudent.tariff_name || '—' %></dd>
+        </div>
+        <div>
+          <dt>Группа</dt>
+          <dd><%= selectedStudent.group_name || '—' %></dd>
+        </div>
+        <div>
+          <dt>Преподаватель</dt>
+          <dd><%= selectedStudent.teacher_name || '—' %></dd>
+        </div>
+        <div>
+          <dt>Расписание</dt>
+          <dd><%= selectedStudent.schedule_text || '—' %></dd>
+        </div>
+        <div>
+          <dt>До истечения тарифа</dt>
+          <dd>
+            <% if (selectedStudent.tariff_days_left === null) { %>
+              Оплат пока нет
+            <% } else if (selectedStudent.tariff_days_left > 0) { %>
+              <%= selectedStudent.tariff_days_left %> дн.
+            <% } else { %>
+              Тариф истек
+            <% } %>
+          </dd>
+        </div>
+      </dl>
+
+      <div class="panel-head compact">
+        <h3>История оплат</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Дата</th>
+              <th>Тариф</th>
+              <th>Сумма</th>
+              <th>Период</th>
+            </tr>
+          </thead>
+          <tbody>
+            <% if (paymentHistory.length === 0) { %>
+              <tr>
+                <td colspan="4" class="empty-state">Оплат пока нет</td>
+              </tr>
+            <% } %>
+            <% paymentHistory.forEach((payment) => { %>
+              <tr>
+                <td><%= payment.payment_date %></td>
+                <td><%= payment.tariff_name %></td>
+                <td><%= payment.amount.toFixed(2) %></td>
+                <td><%= payment.period_start %> - <%= payment.period_end %></td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </article>
+</section>
+
+<div class="modal" id="student-modal" data-modal>
+  <div class="modal-card">
+    <div class="panel-head">
+      <h3>Карточка ученика</h3>
+      <div class="row-actions">
+        <button class="link-button" type="button" data-reset-student-form>Очистить форму</button>
+        <button class="link-button" type="button" data-close-modal>Закрыть</button>
+      </div>
+    </div>
+
+    <form method="post" action="/students/save" class="stack-form" id="student-form">
+      <input type="hidden" name="id" id="student-id" value="<%= studentDraft.id || '' %>" />
+
+      <div class="wizard-steps" id="student-wizard-steps">
+        <button type="button" class="wizard-step is-active" data-step-indicator="1">1. Данные</button>
+        <button type="button" class="wizard-step" data-step-indicator="2">2. Тариф</button>
+        <button type="button" class="wizard-step" data-step-indicator="3">3. Группа</button>
+      </div>
+
+      <section class="wizard-panel modal-form-grid is-active" data-step-panel="1">
+        <label class="span-2">
+          <span>ФИО</span>
+          <input type="text" name="fullName" id="student-full-name" value="<%= studentDraft.fullName || '' %>" required />
+        </label>
+
+        <label>
+          <span>Телефон</span>
+          <input type="text" name="phone" id="student-phone" value="<%= studentDraft.phone || '' %>" required />
+        </label>
+
+        <label>
+          <span>Язык</span>
+          <select name="language" id="student-language" required>
+            <option value="english" <%= (studentDraft.language || selectedLanguage || 'english') === 'english' ? 'selected' : '' %>>Английский</option>
+            <option value="chinese" <%= (studentDraft.language || selectedLanguage) === 'chinese' ? 'selected' : '' %>>Китайский</option>
+          </select>
+        </label>
+
+        <label>
+          <span>Уровень</span>
+          <input type="text" name="level" id="student-level" value="<%= studentDraft.level || selectedLevel %>" required />
+        </label>
+
+        <label>
+          <span>Дата начала</span>
+          <input type="date" name="startDate" id="student-start-date" value="<%= studentDraft.startDate || '' %>" required />
+        </label>
+      </section>
+
+      <section class="wizard-panel modal-form-grid" data-step-panel="2">
+        <label class="span-2">
+          <span>Тариф</span>
+          <select name="tariffId" id="student-tariff-id" required>
+            <option value="">Выберите тариф</option>
+            <% tariffs.forEach((tariff) => { %>
+              <option value="<%= tariff.id %>" data-language="<%= tariff.language %>" <%= String(studentDraft.tariffId || '') === String(tariff.id) ? 'selected' : '' %>>
+                <%= tariff.name %> · <%= languageLabels[tariff.language] %> · <%= tariff.duration_days %> дн. · <%= tariff.price.toFixed(2) %>
+              </option>
+            <% }) %>
+          </select>
+        </label>
+
+        <label>
+          <span>Статус</span>
+          <select name="status" id="student-status" required>
+            <option value="active" <%= (studentDraft.status || 'active') === 'active' ? 'selected' : '' %>>Активен</option>
+            <option value="pause" <%= studentDraft.status === 'pause' ? 'selected' : '' %>>Пауза</option>
+            <option value="completed" <%= studentDraft.status === 'completed' ? 'selected' : '' %>>Завершил</option>
+          </select>
+        </label>
+
+        <label class="span-2">
+          <span>Комментарий</span>
+          <textarea name="notes" id="student-notes" rows="3"><%= studentDraft.notes || '' %></textarea>
+        </label>
+      </section>
+
+      <section class="wizard-panel modal-form-grid" data-step-panel="3">
+        <label class="span-2">
+          <span>Подходящая группа</span>
+          <select name="groupId" id="student-group-id">
+            <option value="">Без группы</option>
+            <% matchingGroups.forEach((group) => { %>
+              <option
+                value="<%= group.id %>"
+                data-language="<%= group.language %>"
+                data-level="<%= group.level %>"
+                data-teacher="<%= group.teacher_name %>"
+                data-schedule="<%= group.schedule_text %>"
+                <%= String(studentDraft.groupId || '') === String(group.id) ? 'selected' : '' %>
+              >
+                <%= group.name %> · <%= group.teacher_name %> · мест: <%= group.free_slots %>
+              </option>
+            <% }) %>
+          </select>
+        </label>
+
+        <div class="group-auto-info span-2" id="group-auto-info"></div>
+      </section>
+
+      <div class="wizard-actions span-2">
+        <button type="button" class="secondary-button" data-wizard-prev>Назад</button>
+        <button type="button" class="mini-button" data-wizard-next>Далее</button>
+      </div>
+
+      <button class="primary-button span-2" type="submit" id="student-submit-button">Сохранить ученика</button>
+    </form>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

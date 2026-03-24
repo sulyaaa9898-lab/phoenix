@@ -1,0 +1,98 @@
+<%- include('partials/header', { title: 'Тарифы', heading: 'Тарифные планы центра' }) %>
+
+<section class="panel-grid">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Список тарифов</h3>
+      <div class="row-actions">
+        <button class="mini-button" type="button" data-open-modal="tariff-modal">Создать тариф</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Язык</th>
+            <th>Формат</th>
+            <th>Длительность</th>
+            <th>Цена</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (tariffs.length === 0) { %>
+            <tr>
+              <td colspan="6" class="empty-state">Тарифов пока нет</td>
+            </tr>
+          <% } %>
+          <% tariffs.forEach((tariff) => { %>
+            <tr>
+              <td>
+                <strong><%= tariff.name %></strong>
+                <p class="row-subtext"><%= tariff.notes || '' %></p>
+              </td>
+              <td><%= languageLabels[tariff.language] %></td>
+              <td>Групповой</td>
+              <td><%= tariff.duration_days %> дней</td>
+              <td><%= tariff.price.toFixed(2) %></td>
+              <td><span class="balance-pill <%= tariff.status === 'active' ? 'ok' : 'neutral' %>"><%= tariffStatusLabels[tariff.status] %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<div class="modal" id="tariff-modal" data-modal>
+  <div class="modal-card">
+    <div class="panel-head">
+      <h3>Создать тариф</h3>
+      <button class="link-button" type="button" data-close-modal>Закрыть</button>
+    </div>
+
+    <form method="post" action="/tariffs/create" class="stack-form modal-form-grid">
+      <label class="span-2">
+        <span>Название тарифа</span>
+        <input type="text" name="name" value="<%= tariffDraft.name || '' %>" required />
+      </label>
+
+      <label>
+        <span>Язык</span>
+        <select name="language" required>
+          <option value="english" <%= (tariffDraft.language || 'english') === 'english' ? 'selected' : '' %>>Английский</option>
+          <option value="chinese" <%= tariffDraft.language === 'chinese' ? 'selected' : '' %>>Китайский</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Длительность (дней)</span>
+        <input type="number" name="durationDays" min="1" value="<%= tariffDraft.durationDays || 30 %>" required />
+      </label>
+
+      <label>
+        <span>Цена</span>
+        <input type="number" name="price" min="0" step="0.01" value="<%= tariffDraft.price || '' %>" required />
+      </label>
+
+      <label>
+        <span>Статус</span>
+        <select name="status" required>
+          <option value="active" <%= (tariffDraft.status || 'active') === 'active' ? 'selected' : '' %>>Активен</option>
+          <option value="inactive" <%= tariffDraft.status === 'inactive' ? 'selected' : '' %>>Неактивен</option>
+        </select>
+      </label>
+
+      <label class="span-2">
+        <span>Описание</span>
+        <textarea name="notes" rows="3"><%= tariffDraft.notes || '' %></textarea>
+      </label>
+
+      <button class="primary-button span-2" type="submit">Сохранить тариф</button>
+    </form>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

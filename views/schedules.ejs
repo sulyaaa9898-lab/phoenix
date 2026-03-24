@@ -1,0 +1,103 @@
+<%- include('partials/header', { title: 'Расписание занятий', heading: 'Расписание по группам' }) %>
+
+<section class="panel-grid">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Текущее расписание</h3>
+      <div class="row-actions">
+        <button class="mini-button" type="button" data-open-modal="schedule-modal">Добавить слот</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>День</th>
+            <th>Время</th>
+            <th>Группа</th>
+            <th>Язык</th>
+            <th>Уровень</th>
+            <th>Преподаватель</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (schedules.length === 0) { %>
+            <tr>
+              <td colspan="7" class="empty-state">Расписание пока пустое</td>
+            </tr>
+          <% } %>
+          <% schedules.forEach((slot) => { %>
+            <tr>
+              <td><%= dayLabels[slot.day_of_week] %></td>
+              <td><%= slot.start_time %> - <%= slot.end_time %></td>
+              <td><%= slot.group_name %></td>
+              <td><%= languageLabels[slot.language] %></td>
+              <td><%= slot.level %></td>
+              <td><%= slot.teacher_name %></td>
+              <td><span class="balance-pill <%= slot.status === 'active' ? 'ok' : 'neutral' %>"><%= slot.status === 'active' ? 'Активен' : 'Неактивен' %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<div class="modal" id="schedule-modal" data-modal>
+  <div class="modal-card">
+    <div class="panel-head">
+      <h3>Добавить слот расписания</h3>
+      <button class="link-button" type="button" data-close-modal>Закрыть</button>
+    </div>
+
+    <form method="post" action="/schedules/create" class="stack-form modal-form-grid">
+      <label class="span-2">
+        <span>Группа</span>
+        <select name="groupId" required>
+          <option value="">Выберите группу</option>
+          <% groups.forEach((group) => { %>
+            <option value="<%= group.id %>" <%= String(scheduleDraft.groupId || '') === String(group.id) ? 'selected' : '' %>>
+              <%= group.name %> · <%= languageLabels[group.language] %> · <%= group.level %>
+            </option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label>
+        <span>День недели</span>
+        <select name="dayOfWeek" required>
+          <option value="mon" <%= (scheduleDraft.dayOfWeek || 'mon') === 'mon' ? 'selected' : '' %>>Понедельник</option>
+          <option value="tue" <%= scheduleDraft.dayOfWeek === 'tue' ? 'selected' : '' %>>Вторник</option>
+          <option value="wed" <%= scheduleDraft.dayOfWeek === 'wed' ? 'selected' : '' %>>Среда</option>
+          <option value="thu" <%= scheduleDraft.dayOfWeek === 'thu' ? 'selected' : '' %>>Четверг</option>
+          <option value="fri" <%= scheduleDraft.dayOfWeek === 'fri' ? 'selected' : '' %>>Пятница</option>
+          <option value="sat" <%= scheduleDraft.dayOfWeek === 'sat' ? 'selected' : '' %>>Суббота</option>
+          <option value="sun" <%= scheduleDraft.dayOfWeek === 'sun' ? 'selected' : '' %>>Воскресенье</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Начало</span>
+        <input type="time" name="startTime" value="<%= scheduleDraft.startTime || '' %>" required />
+      </label>
+
+      <label>
+        <span>Окончание</span>
+        <input type="time" name="endTime" value="<%= scheduleDraft.endTime || '' %>" required />
+      </label>
+
+      <label>
+        <span>Статус</span>
+        <select name="status" required>
+          <option value="active" <%= (scheduleDraft.status || 'active') === 'active' ? 'selected' : '' %>>Активен</option>
+          <option value="inactive" <%= scheduleDraft.status === 'inactive' ? 'selected' : '' %>>Неактивен</option>
+        </select>
+      </label>
+
+      <button class="primary-button span-2" type="submit">Сохранить слот</button>
+    </form>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

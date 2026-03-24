@@ -1,0 +1,78 @@
+<%- include('partials/header', { title: 'График и табель', heading: 'Загрузка преподавателей по расписанию' }) %>
+
+<section class="panel-grid">
+  <% if (teachers.length === 0) { %>
+    <article class="panel">
+      <p class="empty-state">Преподавателей пока нет</p>
+    </article>
+  <% } %>
+
+  <% teachers.forEach((teacher) => { %>
+    <article class="panel">
+      <div class="panel-head">
+        <div>
+          <h3><%= teacher.full_name %></h3>
+          <p class="muted"><%= teacher.phone %> · <%= teacherLanguageLabels[teacher.teaching_language] %> · <%= teacherStatusLabels[teacher.status] %></p>
+        </div>
+        <div class="activity-meta">
+          <strong><%= teacher.weekly_load %> слотов/неделю</strong>
+          <small><%= teacher.groups_count %> групп</small>
+        </div>
+      </div>
+
+      <div class="panel-grid">
+        <section>
+          <div class="panel-head compact">
+            <h3>Группы</h3>
+          </div>
+          <ul class="student-chips">
+            <% if (teacher.groups.length === 0) { %>
+              <li class="chip empty">Групп нет</li>
+            <% } %>
+            <% teacher.groups.forEach((group) => { %>
+              <li class="chip">
+                <span><%= group.name %></span>
+                <small><%= languageLabels[group.language] %> · <%= group.level %></small>
+              </li>
+            <% }) %>
+          </ul>
+        </section>
+
+        <section>
+          <div class="panel-head compact">
+            <h3>Слоты расписания</h3>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>День</th>
+                  <th>Время</th>
+                  <th>Группа</th>
+                  <th>Статус</th>
+                </tr>
+              </thead>
+              <tbody>
+                <% if (teacher.schedules.length === 0) { %>
+                  <tr>
+                    <td colspan="4" class="empty-state">Слотов нет</td>
+                  </tr>
+                <% } %>
+                <% teacher.schedules.forEach((slot) => { %>
+                  <tr>
+                    <td><%= dayLabels[slot.day_of_week] %></td>
+                    <td><%= slot.start_time %> - <%= slot.end_time %></td>
+                    <td><%= slot.group_name %></td>
+                    <td><%= slot.status === 'active' ? 'Активен' : 'Неактивен' %></td>
+                  </tr>
+                <% }) %>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </article>
+  <% }) %>
+</section>
+
+<%- include('partials/footer') %>

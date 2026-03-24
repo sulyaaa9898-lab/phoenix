@@ -1,0 +1,125 @@
+<%- include('partials/header', { title: 'Группы', heading: 'Группы и состав учеников' }) %>
+
+<section class="panel-grid">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Список групп</h3>
+      <div class="row-actions">
+        <button class="mini-button" type="button" data-open-modal="group-modal">Создать группу</button>
+      </div>
+    </div>
+
+    <div class="group-cards">
+      <% if (groups.length === 0) { %>
+        <p class="empty-state">Групп пока нет</p>
+      <% } %>
+
+      <% groups.forEach((group) => { %>
+        <article class="group-card">
+          <div class="group-card-head">
+            <div>
+              <h3><%= group.name %></h3>
+              <p><%= languageLabels[group.language] %> · <%= group.level %></p>
+            </div>
+            <span class="group-size <%= group.status === 'active' ? 'ok' : 'neutral' %>"><%= groupStatusLabels[group.status] %></span>
+          </div>
+
+          <dl class="group-meta">
+            <div>
+              <dt>Преподаватель</dt>
+              <dd><%= group.teacher_name %></dd>
+            </div>
+            <div>
+              <dt>Расписание</dt>
+              <dd><%= group.schedule_text || 'Не заполнено' %></dd>
+            </div>
+            <div>
+              <dt>Мест занято</dt>
+              <dd><%= group.busy_students %> / <%= group.seat_limit %></dd>
+            </div>
+            <div>
+              <dt>Свободно</dt>
+              <dd><%= group.free_slots %></dd>
+            </div>
+          </dl>
+
+          <div>
+            <h4>Ученики</h4>
+            <ul class="student-chips">
+              <% if (group.students.length === 0) { %>
+                <li class="chip empty">Нет учеников</li>
+              <% } %>
+              <% group.students.forEach((student) => { %>
+                <li class="chip">
+                  <span><%= student.full_name %></span>
+                  <small><%= studentStatusLabels[student.status] %></small>
+                </li>
+              <% }) %>
+            </ul>
+          </div>
+        </article>
+      <% }) %>
+    </div>
+  </article>
+</section>
+
+<div class="modal" id="group-modal" data-modal>
+  <div class="modal-card">
+    <div class="panel-head">
+      <h3>Создать группу</h3>
+      <button class="link-button" type="button" data-close-modal>Закрыть</button>
+    </div>
+
+    <form method="post" action="/groups/create" class="stack-form modal-form-grid">
+      <label>
+        <span>Название группы</span>
+        <input type="text" name="name" value="<%= groupDraft.name || '' %>" required />
+      </label>
+
+      <label>
+        <span>Язык</span>
+        <select name="language" required>
+          <option value="english" <%= (groupDraft.language || 'english') === 'english' ? 'selected' : '' %>>Английский</option>
+          <option value="chinese" <%= groupDraft.language === 'chinese' ? 'selected' : '' %>>Китайский</option>
+        </select>
+      </label>
+
+      <label>
+        <span>Уровень</span>
+        <input type="text" name="level" value="<%= groupDraft.level || '' %>" required />
+      </label>
+
+      <label>
+        <span>Преподаватель</span>
+        <select name="teacherId" required>
+          <option value="">Выберите преподавателя</option>
+          <% teachers.forEach((teacher) => { %>
+            <option value="<%= teacher.id %>" <%= String(groupDraft.teacherId || '') === String(teacher.id) ? 'selected' : '' %>><%= teacher.full_name %> · <%= teacherLanguageLabels[teacher.teaching_language] %></option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label>
+        <span>Лимит мест</span>
+        <input type="number" name="seatLimit" min="1" value="<%= groupDraft.seatLimit || 8 %>" required />
+      </label>
+
+      <label>
+        <span>Статус</span>
+        <select name="status" required>
+          <option value="active" <%= (groupDraft.status || 'active') === 'active' ? 'selected' : '' %>>Активна</option>
+          <option value="inactive" <%= groupDraft.status === 'inactive' ? 'selected' : '' %>>Неактивна</option>
+        </select>
+      </label>
+
+      <label class="span-2">
+        <span>Комментарий</span>
+        <textarea name="notes" rows="3"><%= groupDraft.notes || '' %></textarea>
+      </label>
+
+      <button class="primary-button span-2" type="submit">Сохранить группу</button>
+    </form>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

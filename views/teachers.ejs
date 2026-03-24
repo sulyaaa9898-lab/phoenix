@@ -1,0 +1,101 @@
+<%- include('partials/header', { title: 'Преподаватели', heading: 'Карточки преподавателей' }) %>
+
+<section class="panel-grid">
+  <article class="panel">
+    <div class="panel-head">
+      <h3>Список преподавателей</h3>
+      <div class="row-actions">
+        <button class="mini-button" type="button" data-open-modal="teacher-modal">Добавить преподавателя</button>
+      </div>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ФИО</th>
+            <th>Телефон</th>
+            <th>Язык</th>
+            <th>Уровни</th>
+            <th>Доступность</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (teachers.length === 0) { %>
+            <tr>
+              <td colspan="6" class="empty-state">Преподавателей пока нет</td>
+            </tr>
+          <% } %>
+          <% teachers.forEach((teacher) => { %>
+            <tr>
+              <td><strong><%= teacher.full_name %></strong></td>
+              <td><%= teacher.phone %></td>
+              <td><%= teacherLanguageLabels[teacher.teaching_language] %></td>
+              <td><%= teacher.levels_text %></td>
+              <td><%= teacher.availability_text || '—' %></td>
+              <td><span class="balance-pill <%= teacher.status === 'active' ? 'ok' : 'neutral' %>"><%= teacherStatusLabels[teacher.status] %></span></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>
+
+<div class="modal" id="teacher-modal" data-modal>
+  <div class="modal-card">
+    <div class="panel-head">
+      <h3>Добавить преподавателя</h3>
+      <button class="link-button" type="button" data-close-modal>Закрыть</button>
+    </div>
+
+    <form method="post" action="/teachers/create" class="stack-form modal-form-grid">
+      <label>
+        <span>ФИО</span>
+        <input type="text" name="fullName" value="<%= teacherDraft.fullName || '' %>" required />
+      </label>
+
+      <label>
+        <span>Телефон</span>
+        <input type="text" name="phone" value="<%= teacherDraft.phone || '' %>" required />
+      </label>
+
+      <label>
+        <span>Язык преподавания</span>
+        <select name="teachingLanguage" required>
+          <option value="english" <%= (teacherDraft.teachingLanguage || 'english') === 'english' ? 'selected' : '' %>>Английский</option>
+          <option value="chinese" <%= teacherDraft.teachingLanguage === 'chinese' ? 'selected' : '' %>>Китайский</option>
+          <option value="both" <%= teacherDraft.teachingLanguage === 'both' ? 'selected' : '' %>>Оба языка</option>
+        </select>
+      </label>
+
+      <label class="span-2">
+        <span>Уровни, которые может вести</span>
+        <input type="text" name="levelsText" value="<%= teacherDraft.levelsText || '' %>" required />
+      </label>
+
+      <label class="span-2">
+        <span>Доступные дни и время</span>
+        <textarea name="availabilityText" rows="3"><%= teacherDraft.availabilityText || '' %></textarea>
+      </label>
+
+      <label>
+        <span>Статус</span>
+        <select name="status" required>
+          <option value="active" <%= (teacherDraft.status || 'active') === 'active' ? 'selected' : '' %>>Активен</option>
+          <option value="inactive" <%= teacherDraft.status === 'inactive' ? 'selected' : '' %>>Неактивен</option>
+        </select>
+      </label>
+
+      <label class="span-2">
+        <span>Комментарий</span>
+        <textarea name="notes" rows="3"><%= teacherDraft.notes || '' %></textarea>
+      </label>
+
+      <button class="primary-button span-2" type="submit">Сохранить преподавателя</button>
+    </form>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

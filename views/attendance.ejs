@@ -1,0 +1,97 @@
+<%- include('partials/header', { title: 'Посещаемость', heading: 'Отметка занятий по группам' }) %>
+
+<section class="panel-grid two-columns top-align">
+  <article class="panel sticky-panel">
+    <div class="panel-head">
+      <h3>Выбор занятия</h3>
+    </div>
+    <form method="get" action="/attendance" class="stack-form">
+      <label>
+        <span>Группа</span>
+        <select name="groupId" required>
+          <option value="">Выберите группу</option>
+          <% groups.forEach((group) => { %>
+            <option value="<%= group.id %>" <%= selectedGroup && group.id === selectedGroup.id ? 'selected' : '' %>><%= group.name %></option>
+          <% }) %>
+        </select>
+      </label>
+      <label>
+        <span>Дата занятия</span>
+        <input type="date" name="lessonDate" value="<%= lessonDate %>" required />
+      </label>
+      <button class="primary-button" type="submit">Открыть список</button>
+    </form>
+
+    <% if (selectedGroup) { %>
+      <div class="divider"></div>
+      <div class="group-summary">
+        <h3><%= selectedGroup.name %></h3>
+        <p><%= languageLabels[selectedGroup.language] %></p>
+        <p>Преподаватель: <%= selectedGroup.teacher_name || 'Не назначен' %></p>
+        <p>Расписание: <%= selectedGroup.schedule_text %></p>
+      </div>
+    <% } %>
+  </article>
+
+  <article class="panel wide-panel">
+    <div class="panel-head">
+      <h3>Отметка посещаемости</h3>
+      <div class="row-actions">
+        <button class="mini-button" type="button" data-mark-all="present">Всем "был"</button>
+        <button class="mini-button" type="button" data-mark-all="absent">Всем "не был"</button>
+      </div>
+    </div>
+
+    <% if (!selectedGroup) { %>
+      <p class="empty-state">Сначала выберите группу и дату занятия.</p>
+    <% } else if (students.length === 0) { %>
+      <p class="empty-state">В выбранной группе пока нет учеников.</p>
+    <% } else { %>
+      <% const existingStatusMap = Object.fromEntries(existingRecords.map((item) => [item.student_id, item.status])); %>
+      <form method="post" action="/attendance/save" class="stack-form">
+        <input type="hidden" name="groupId" value="<%= selectedGroup.id %>" />
+        <input type="hidden" name="lessonDate" value="<%= lessonDate %>" />
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Ученик</th>
+                <th>Остаток до отметки</th>
+                <th>Статус</th>
+                <th>Действие по балансу</th>
+              </tr>
+            </thead>
+            <tbody>
+              <% students.forEach((student) => { %>
+                <% const currentStatus = existingStatusMap[student.id] || 'absent'; %>
+                <tr>
+                  <td>
+                    <strong><%= student.full_name %></strong>
+                  </td>
+                  <td>
+                    <span class="balance-pill <%= student.lesson_balance <= 0 ? 'danger' : 'ok' %>"><%= student.lesson_balance %></span>
+                  </td>
+                  <td>
+                    <input type="hidden" name="studentId" value="<%= student.id %>" />
+                    <select class="attendance-status" name="status">
+                      <option value="present" <%= currentStatus === 'present' ? 'selected' : '' %>>Был</option>
+                      <option value="absent" <%= currentStatus === 'absent' ? 'selected' : '' %>>Не был</option>
+                    </select>
+                  </td>
+                  <td>
+                    <span class="muted attendance-hint"><%= currentStatus === 'present' ? 'Списание 1 занятия' : 'Без списания' %></span>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+
+        <button class="primary-button" type="submit">Сохранить посещаемость</button>
+      </form>
+    <% } %>
+  </article>
+</section>
+
+<%- include('partials/footer') %>
