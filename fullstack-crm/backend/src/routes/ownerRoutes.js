@@ -24,14 +24,21 @@ const roomSchema = z.object({
 
 router.post('/tariffs', async (req, res) => {
   try {
+    const { centerId } = req.authContext;
     const data = tariffSchema.parse(req.body);
+
+    const courseExists = await query('SELECT id FROM courses WHERE id = $1 AND center_id = $2', [data.courseId, centerId]);
+    if (!courseExists.rows.length) {
+      return res.status(404).json({ error: 'Курс не найден в текущем центре' });
+    }
+
     const result = await query(
       `
-        INSERT INTO tariffs (course_id, price, total_lessons)
-        VALUES ($1, $2, $3)
+        INSERT INTO tariffs (center_id, course_id, price, total_lessons)
+        VALUES ($1, $2, $3, $4)
         RETURNING *
       `,
-      [data.courseId, data.price, data.totalLessons],
+      [centerId, data.courseId, data.price, data.totalLessons],
     );
 
     res.status(201).json(result.rows[0]);
@@ -42,14 +49,15 @@ router.post('/tariffs', async (req, res) => {
 
 router.post('/teachers', async (req, res) => {
   try {
+    const { centerId } = req.authContext;
     const data = teacherSchema.parse(req.body);
     const result = await query(
       `
-        INSERT INTO teachers (full_name, languages, levels, work_schedule)
-        VALUES ($1, $2, $3, $4::jsonb)
+        INSERT INTO teachers (center_id, full_name, languages, levels, work_schedule)
+        VALUES ($1, $2, $3, $4, $5::jsonb)
         RETURNING *
       `,
-      [data.fullName, data.languages, data.levels, JSON.stringify(data.workSchedule)],
+      [centerId, data.fullName, data.languages, data.levels, JSON.stringify(data.workSchedule)],
     );
 
     res.status(201).json(result.rows[0]);
@@ -60,14 +68,15 @@ router.post('/teachers', async (req, res) => {
 
 router.post('/rooms', async (req, res) => {
   try {
+    const { centerId } = req.authContext;
     const data = roomSchema.parse(req.body);
     const result = await query(
       `
-        INSERT INTO rooms (name, capacity)
-        VALUES ($1, $2)
+        INSERT INTO rooms (center_id, name, capacity)
+        VALUES ($1, $2, $3)
         RETURNING *
       `,
-      [data.name, data.capacity],
+      [centerId, data.name, data.capacity],
     );
 
     res.status(201).json(result.rows[0]);
@@ -78,11 +87,12 @@ router.post('/rooms', async (req, res) => {
 
 router.get('/snapshot', async (_req, res) => {
   try {
+    const { centerId } = _req.authContext;
     const [courses, tariffs, teachers, rooms] = await Promise.all([
-      query('SELECT * FROM courses ORDER BY id DESC'),
-      query('SELECT * FROM tariffs ORDER BY id DESC'),
-      query('SELECT * FROM teachers ORDER BY id DESC'),
-      query('SELECT * FROM rooms ORDER BY id DESC'),
+      query('SELECT * FROM courses WHERE center_id = $1 ORDER BY id DESC', [centerId]),
+      query('SELECT * FROM tariffs WHERE center_id = $1 ORDER BY id DESC', [centerId]),
+      query('SELECT * FROM teachers WHERE center_id = $1 ORDER BY id DESC', [centerId]),
+      query('SELECT * FROM rooms WHERE center_id = $1 ORDER BY id DESC', [centerId]),
     ]);
 
     res.json({

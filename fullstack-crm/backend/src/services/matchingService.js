@@ -43,14 +43,15 @@ function parseTeacherAvailability(scheduleJson) {
   return slots;
 }
 
-async function getBusySlotsByTeacher(teacherId) {
+async function getBusySlotsByTeacher(teacherId, centerId) {
   const { rows } = await query(
     `
       SELECT g.schedule_days, g.start_time::text AS start_time, g.end_time::text AS end_time
       FROM groups g
       WHERE g.teacher_id = $1
+        AND g.center_id = $2
     `,
-    [teacherId],
+    [teacherId, centerId],
   );
 
   const busy = [];
@@ -72,14 +73,15 @@ async function getBusySlotsByTeacher(teacherId) {
   return busy;
 }
 
-async function getBusySlotsByRoom(roomId) {
+async function getBusySlotsByRoom(roomId, centerId) {
   const { rows } = await query(
     `
       SELECT g.schedule_days, g.start_time::text AS start_time, g.end_time::text AS end_time
       FROM groups g
       WHERE g.room_id = $1
+        AND g.center_id = $2
     `,
-    [roomId],
+    [roomId, centerId],
   );
 
   const busy = [];
@@ -101,16 +103,17 @@ async function getBusySlotsByRoom(roomId) {
   return busy;
 }
 
-export async function getMatchingResources(language, level) {
+export async function getMatchingResources(language, level, centerId) {
   const teacherResult = await query(
     `
       SELECT id, full_name, languages, levels, work_schedule
       FROM teachers
-      WHERE $1 = ANY(languages)
+      WHERE center_id = $3
+        AND $1 = ANY(languages)
         AND $2 = ANY(levels)
       ORDER BY full_name ASC
     `,
-    [language, level],
+    [language, level, centerId],
   );
 
   const groupsResult = await query(
@@ -134,14 +137,18 @@ export async function getMatchingResources(language, level) {
       INNER JOIN teachers t ON t.id = g.teacher_id
       INNER JOIN rooms r ON r.id = g.room_id
       LEFT JOIN enrollments e ON e.group_id = g.id
-      WHERE c.language = $1
+      WHERE g.center_id = $3
+        AND c.center_id = $3
+        AND t.center_id = $3
+        AND r.center_id = $3
+        AND c.language = $1
         AND c.level = $2
       GROUP BY g.id, c.title, t.full_name, r.name, r.capacity
       HAVING COUNT(e.id) FILTER (WHERE e.status = 'active') < r.capacity
          AND COUNT(e.id) FILTER (WHERE e.status = 'active') < g.max_students
       ORDER BY g.id DESC
     `,
-    [language, level],
+    [language, level, centerId],
   );
 
   if (groupsResult.rows.length > 0) {
@@ -156,8 +163,10 @@ export async function getMatchingResources(language, level) {
     `
       SELECT id, name, capacity
       FROM rooms
+      WHERE center_id = $1
       ORDER BY capacity DESC, name ASC
     `,
+    [centerId],
   );
 
   const availableSlots = [];
@@ -168,7 +177,7 @@ export async function getMatchingResources(language, level) {
       continue;
     }
 
-    const teacherBusy = await getBusySlotsByTeacher(teacher.id);
+    const teacherBusy = await getBusySlotsByTeacher(teacher.id, centerId);
 
     for (const slot of teacherAvailability) {
       const teacherHasCollision = teacherBusy.some((busy) => {
@@ -181,7 +190,7 @@ export async function getMatchingResources(language, level) {
 
       const freeRooms = [];
       for (const room of roomsResult.rows) {
-        const roomBusy = await getBusySlotsByRoom(room.id);
+        const roomBusy = await getBusySlotsByRoom(room.id, centerId);
         const roomHasCollision = roomBusy.some((busy) => {
           return busy.day === slot.day && overlaps(slot.startMinutes, slot.endMinutes, busy.startMinutes, busy.endMinutes);
         });

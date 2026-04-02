@@ -1,12 +1,33 @@
+import { useEffect } from 'react';
 import { ArrowRight, BriefcaseBusiness, LogOut, ShieldCheck } from 'lucide-react';
 import { Link, Navigate, Route, Routes } from 'react-router-dom';
-import { OwnerDashboard } from './components/OwnerDashboard';
-import { ManagerWorkspace } from './components/ManagerWorkspace';
+import { PlatformDashboard } from './components/PlatformDashboard';
+import { CenterOwnerDashboard } from './components/CenterOwnerDashboard';
+import { CenterManagerDashboard } from './components/CenterManagerDashboard';
+import { ActivatePage } from './components/ActivatePage';
+import { setApiContext } from './lib/api';
 
 export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Navigate to="/manager/login" replace />} />
+      <Route
+        path="/platform/dashboard"
+        element={
+          <WorkspaceLayout
+            role="owner"
+            badge="Platform Owner"
+            title="SaaS Platform"
+            description="Управление центрами и выдача инвайтов владельцам"
+            exitTo="/manager/login"
+            exitLabel="Перейти к login"
+            routeLabel="http://localhost:5173/platform/dashboard"
+          >
+            <PlatformDashboard />
+          </WorkspaceLayout>
+        }
+      />
+      <Route path="/activate" element={<ActivateWrapper />} />
       <Route
         path="/owner/login"
         element={
@@ -16,7 +37,7 @@ export default function App() {
             title="Вход в панель владельца"
             description="Отдельная ссылка для управления тарифами, преподавателями, кабинетами и архитектурой учебного центра."
             primaryLabel="Открыть панель владельца"
-            primaryTo="/owner/dashboard"
+            primaryTo="/center/11111111-1111-1111-1111-111111111111/owner/dashboard"
             secondaryLabel="Открыть рабочее место менеджера"
             secondaryTo="/manager/login"
           />
@@ -31,7 +52,7 @@ export default function App() {
             title="Вход в рабочее место менеджера"
             description="Отдельная ссылка для регистрации учеников, подбора подходящих групп и поиска свободных слотов."
             primaryLabel="Открыть рабочее место менеджера"
-            primaryTo="/manager/workspace"
+            primaryTo="/center/11111111-1111-1111-1111-111111111111/manager/workspace"
             secondaryLabel="Открыть панель владельца"
             secondaryTo="/owner/login"
           />
@@ -40,21 +61,33 @@ export default function App() {
       <Route
         path="/owner/dashboard"
         element={
-          <WorkspaceLayout
-            role="owner"
-            badge="Панель владельца"
-            title="Управление учебным центром"
-            description="Структура центра, тарифы, преподаватели и кабинеты под контролем владельца."
-            exitTo="/owner/login"
-            exitLabel="Выйти на страницу входа владельца"
-            routeLabel="http://localhost:5173/owner/dashboard"
-          >
-            <OwnerDashboard />
-          </WorkspaceLayout>
+          <Navigate to="/center/11111111-1111-1111-1111-111111111111/owner/dashboard" replace />
         }
       />
       <Route
         path="/manager/workspace"
+        element={
+          <Navigate to="/center/11111111-1111-1111-1111-111111111111/manager/workspace" replace />
+        }
+      />
+      <Route
+        path="/center/:centerId/owner/dashboard"
+        element={
+          <WorkspaceLayout
+            role="owner"
+            badge="Center Owner"
+            title="Управление учебным центром"
+            description="Курсы, тарифы, преподаватели, кабинеты, менеджеры и аналитика"
+            exitTo="/owner/login"
+            exitLabel="Выйти на страницу входа владельца"
+            routeLabel="/center/:centerId/owner/dashboard"
+          >
+            <CenterOwnerDashboard />
+          </WorkspaceLayout>
+        }
+      />
+      <Route
+        path="/center/:centerId/manager/workspace"
         element={
           <WorkspaceLayout
             role="manager"
@@ -63,14 +96,30 @@ export default function App() {
             description="Подбор преподавателей, доступных групп и свободных слотов для новых записей."
             exitTo="/manager/login"
             exitLabel="Выйти на страницу входа менеджера"
-            routeLabel="http://localhost:5173/manager/workspace"
+            routeLabel="/center/:centerId/manager/workspace"
           >
-            <ManagerWorkspace />
+            <CenterManagerDashboard />
           </WorkspaceLayout>
         }
       />
       <Route path="*" element={<Navigate to="/manager/login" replace />} />
     </Routes>
+  );
+}
+
+function ActivateWrapper() {
+  useEffect(() => {
+    setApiContext({
+      role: 'manager',
+      userId: '00000000-0000-0000-0000-000000000003',
+      centerId: '11111111-1111-1111-1111-111111111111',
+    });
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-atmosphere p-4 md:p-8">
+      <ActivatePage />
+    </div>
   );
 }
 

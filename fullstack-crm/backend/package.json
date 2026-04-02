@@ -7,7 +7,8 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "db:schema": "psql \"%DATABASE_URL%\" -f src/sql/schema.sql",
-    "db:seed": "psql \"%DATABASE_URL%\" -f src/sql/seed.sql"
+    "db:seed": "psql \"%DATABASE_URL%\" -f src/sql/seed.sql",
+    "db:migrate:multi-center": "psql \"%DATABASE_URL%\" -f src/sql/migrations/001_multi_center_saas.sql"
   },
   "dependencies": {
     "cors": "^2.8.5",
