@@ -1,0 +1,48 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Manrope', sans-serif;
+  color: #101828;
+}
+
+h1,
+h2,
+h3,
+.title-font {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.bg-atmosphere {
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(255, 106, 61, 0.2), transparent 35%),
+    radial-gradient(circle at 80% 5%, rgba(52, 211, 153, 0.18), transparent 30%),
+    linear-gradient(180deg, #fffaf4 0%, #f8fafc 70%);
+}
+
+.panel {
+  @apply rounded-2xl bg-white/90 p-5 shadow-panel backdrop-blur;
+}
+
+.input {
+  @apply w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm outline-none transition focus:border-coral focus:ring-2 focus:ring-coral/20;
+}
+
+.btn-primary {
+  @apply rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+.btn-accent {
+  @apply rounded-xl bg-coral px-4 py-2 text-sm font-semibold text-white transition hover:bg-orange-500 disabled:cursor-not-allowed disabled:opacity-60;
+}
+
+.btn-ghost {
+  @apply rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50;
+}
+
+.btn-ghost-dark {
+  @apply border-white/20 bg-white/5 text-white hover:border-white/35 hover:bg-white/10;
+}

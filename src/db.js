@@ -124,6 +124,180 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_student_profiles_tariff_id ON student_profiles (tariff_id);
   CREATE INDEX IF NOT EXISTS idx_payment_records_student_id ON payment_records (student_id);
   CREATE INDEX IF NOT EXISTS idx_payment_records_tariff_id ON payment_records (tariff_id);
+
+  CREATE TABLE IF NOT EXISTS crm_courses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    duration_lessons INTEGER NOT NULL CHECK (duration_lessons > 0),
+    price REAL NOT NULL CHECK (price >= 0),
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS crm_rooms (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    capacity INTEGER NOT NULL CHECK (capacity > 0),
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS crm_teacher_courses (
+    teacher_id INTEGER NOT NULL,
+    course_id INTEGER NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (teacher_id, course_id),
+    FOREIGN KEY (teacher_id) REFERENCES teacher_profiles (id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES crm_courses (id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS crm_groups (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL UNIQUE,
+    course_id INTEGER NOT NULL,
+    teacher_id INTEGER NOT NULL,
+    room_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (course_id) REFERENCES crm_courses (id) ON DELETE RESTRICT,
+    FOREIGN KEY (teacher_id) REFERENCES teacher_profiles (id) ON DELETE RESTRICT,
+    FOREIGN KEY (room_id) REFERENCES crm_rooms (id) ON DELETE RESTRICT
+  );
+
+  CREATE TABLE IF NOT EXISTS crm_group_schedule_slots (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    day_of_week TEXT NOT NULL CHECK (day_of_week IN ('mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun')),
+    start_time TEXT NOT NULL,
+    end_time TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive')),
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CHECK (start_time < end_time),
+    UNIQUE (group_id, day_of_week, start_time),
+    FOREIGN KEY (group_id) REFERENCES crm_groups (id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS crm_group_students (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_id INTEGER NOT NULL,
+    student_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'paused', 'completed', 'removed')),
+    enrolled_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE (group_id, student_id),
+    FOREIGN KEY (group_id) REFERENCES crm_groups (id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES student_profiles (id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS crm_student_accounts (
+    student_id INTEGER PRIMARY KEY,
+    balance REAL NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (student_id) REFERENCES student_profiles (id) ON DELETE CASCADE
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_crm_teacher_courses_course ON crm_teacher_courses (course_id);
+  CREATE INDEX IF NOT EXISTS idx_crm_groups_course ON crm_groups (course_id);
+  CREATE INDEX IF NOT EXISTS idx_crm_groups_teacher ON crm_groups (teacher_id);
+  CREATE INDEX IF NOT EXISTS idx_crm_groups_room ON crm_groups (room_id);
+  CREATE INDEX IF NOT EXISTS idx_crm_group_slots_group ON crm_group_schedule_slots (group_id);
+  CREATE INDEX IF NOT EXISTS idx_crm_group_students_group ON crm_group_students (group_id);
+  CREATE INDEX IF NOT EXISTS idx_crm_group_students_student ON crm_group_students (student_id);
+
+  CREATE TRIGGER IF NOT EXISTS trg_crm_teacher_no_overlap_insert
+  BEFORE INSERT ON crm_group_schedule_slots
+  WHEN NEW.status = 'active'
+  BEGIN
+    SELECT CASE
+      WHEN EXISTS (
+        SELECT 1
+        FROM crm_group_schedule_slots existing_slot
+        INNER JOIN crm_groups existing_group ON existing_group.id = existing_slot.group_id
+        INNER JOIN crm_groups new_group ON new_group.id = NEW.group_id
+        WHERE existing_slot.status = 'active'
+          AND existing_group.status = 'active'
+          AND new_group.status = 'active'
+          AND existing_slot.day_of_week = NEW.day_of_week
+          AND existing_slot.group_id != NEW.group_id
+          AND existing_group.teacher_id = new_group.teacher_id
+          AND NEW.start_time < existing_slot.end_time
+          AND NEW.end_time > existing_slot.start_time
+      )
+      THEN RAISE(ABORT, 'Teacher has overlapping schedule slot.')
+    END;
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS trg_crm_teacher_no_overlap_update
+  BEFORE UPDATE ON crm_group_schedule_slots
+  WHEN NEW.status = 'active'
+  BEGIN
+    SELECT CASE
+      WHEN EXISTS (
+        SELECT 1
+        FROM crm_group_schedule_slots existing_slot
+        INNER JOIN crm_groups existing_group ON existing_group.id = existing_slot.group_id
+        INNER JOIN crm_groups new_group ON new_group.id = NEW.group_id
+        WHERE existing_slot.status = 'active'
+          AND existing_group.status = 'active'
+          AND new_group.status = 'active'
+          AND existing_slot.day_of_week = NEW.day_of_week
+          AND existing_slot.id != NEW.id
+          AND existing_group.teacher_id = new_group.teacher_id
+          AND NEW.start_time < existing_slot.end_time
+          AND NEW.end_time > existing_slot.start_time
+      )
+      THEN RAISE(ABORT, 'Teacher has overlapping schedule slot.')
+    END;
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS trg_crm_room_no_overlap_insert
+  BEFORE INSERT ON crm_group_schedule_slots
+  WHEN NEW.status = 'active'
+  BEGIN
+    SELECT CASE
+      WHEN EXISTS (
+        SELECT 1
+        FROM crm_group_schedule_slots existing_slot
+        INNER JOIN crm_groups existing_group ON existing_group.id = existing_slot.group_id
+        INNER JOIN crm_groups new_group ON new_group.id = NEW.group_id
+        WHERE existing_slot.status = 'active'
+          AND existing_group.status = 'active'
+          AND new_group.status = 'active'
+          AND existing_slot.day_of_week = NEW.day_of_week
+          AND existing_slot.group_id != NEW.group_id
+          AND existing_group.room_id = new_group.room_id
+          AND NEW.start_time < existing_slot.end_time
+          AND NEW.end_time > existing_slot.start_time
+      )
+      THEN RAISE(ABORT, 'Room has overlapping schedule slot.')
+    END;
+  END;
+
+  CREATE TRIGGER IF NOT EXISTS trg_crm_room_no_overlap_update
+  BEFORE UPDATE ON crm_group_schedule_slots
+  WHEN NEW.status = 'active'
+  BEGIN
+    SELECT CASE
+      WHEN EXISTS (
+        SELECT 1
+        FROM crm_group_schedule_slots existing_slot
+        INNER JOIN crm_groups existing_group ON existing_group.id = existing_slot.group_id
+        INNER JOIN crm_groups new_group ON new_group.id = NEW.group_id
+        WHERE existing_slot.status = 'active'
+          AND existing_group.status = 'active'
+          AND new_group.status = 'active'
+          AND existing_slot.day_of_week = NEW.day_of_week
+          AND existing_slot.id != NEW.id
+          AND existing_group.room_id = new_group.room_id
+          AND NEW.start_time < existing_slot.end_time
+          AND NEW.end_time > existing_slot.start_time
+      )
+      THEN RAISE(ABORT, 'Room has overlapping schedule slot.')
+    END;
+  END;
 `);
 
 module.exports = db;

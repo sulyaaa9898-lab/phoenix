@@ -1,0 +1,99 @@
+import { Router } from 'express';
+import { z } from 'zod';
+import { query } from '../db.js';
+
+const router = Router();
+
+const tariffSchema = z.object({
+  courseId: z.number().int().positive(),
+  price: z.number().nonnegative(),
+  totalLessons: z.number().int().positive(),
+});
+
+const teacherSchema = z.object({
+  fullName: z.string().min(2),
+  languages: z.array(z.string()).min(1),
+  levels: z.array(z.enum(['A1', 'A2', 'B1', 'B2', 'C1', 'C2'])).min(1),
+  workSchedule: z.record(z.array(z.object({ start: z.string(), end: z.string() }))),
+});
+
+const roomSchema = z.object({
+  name: z.string().min(1),
+  capacity: z.number().int().positive(),
+});
+
+router.post('/tariffs', async (req, res) => {
+  try {
+    const data = tariffSchema.parse(req.body);
+    const result = await query(
+      `
+        INSERT INTO tariffs (course_id, price, total_lessons)
+        VALUES ($1, $2, $3)
+        RETURNING *
+      `,
+      [data.courseId, data.price, data.totalLessons],
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.post('/teachers', async (req, res) => {
+  try {
+    const data = teacherSchema.parse(req.body);
+    const result = await query(
+      `
+        INSERT INTO teachers (full_name, languages, levels, work_schedule)
+        VALUES ($1, $2, $3, $4::jsonb)
+        RETURNING *
+      `,
+      [data.fullName, data.languages, data.levels, JSON.stringify(data.workSchedule)],
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.post('/rooms', async (req, res) => {
+  try {
+    const data = roomSchema.parse(req.body);
+    const result = await query(
+      `
+        INSERT INTO rooms (name, capacity)
+        VALUES ($1, $2)
+        RETURNING *
+      `,
+      [data.name, data.capacity],
+    );
+
+    res.status(201).json(result.rows[0]);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+router.get('/snapshot', async (_req, res) => {
+  try {
+    const [courses, tariffs, teachers, rooms] = await Promise.all([
+      query('SELECT * FROM courses ORDER BY id DESC'),
+      query('SELECT * FROM tariffs ORDER BY id DESC'),
+      query('SELECT * FROM teachers ORDER BY id DESC'),
+      query('SELECT * FROM rooms ORDER BY id DESC'),
+    ]);
+
+    res.json({
+      courses: courses.rows,
+      tariffs: tariffs.rows,
+      teachers: teachers.rows,
+      rooms: rooms.rows,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+export default router;
